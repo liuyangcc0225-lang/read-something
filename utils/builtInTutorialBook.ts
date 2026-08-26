@@ -1,0 +1,897 @@
+import { Book, Chapter, ReaderContentBlock } from '../types';
+import { saveImageBlob } from './imageStorage';
+import {
+  IMG_P1_0, IMG_P1_1,
+  IMG_P2_0, IMG_P2_1, IMG_P2_2,
+  IMG_P3_0, IMG_P3_1,
+  IMG_P4_0, IMG_P4_1,
+  IMG_P5_0, IMG_P5_1,
+  IMG_P6_0, IMG_P6_1, IMG_P6_2, IMG_P6_3,
+  IMG_P8_0, IMG_P8_1,
+} from './builtInTutorialImages';
+
+export const BUILT_IN_TUTORIAL_BOOK_ID = '__built_in_tutorial__';
+/** Bump this number whenever tutorial content is changed so existing users get the update. */
+export const BUILT_IN_TUTORIAL_VERSION = 4.5;
+
+const TUTORIAL_UNREAD_KEY = '__built_in_tutorial_unread__';
+export const isTutorialUnread = (): boolean => {
+  try { return localStorage.getItem(TUTORIAL_UNREAD_KEY) === '1'; } catch { return false; }
+};
+export const markTutorialUnread = (): void => {
+  try { localStorage.setItem(TUTORIAL_UNREAD_KEY, '1'); } catch { /* no-op */ }
+};
+export const clearTutorialUnread = (): void => {
+  try { localStorage.removeItem(TUTORIAL_UNREAD_KEY); } catch { /* no-op */ }
+};
+
+export const isBuiltInBook = (bookId: string) => bookId === BUILT_IN_TUTORIAL_BOOK_ID;
+
+const text = (t: string): ReaderContentBlock => ({ type: 'text', text: t });
+const img = (imageRef: string, alt: string, w?: number, h?: number): ReaderContentBlock => ({
+  type: 'image', imageRef, alt, width: w, height: h,
+});
+
+/* ------------------------------------------------------------------ */
+/*  更新记录                                                            */
+/* ------------------------------------------------------------------ */
+const CH0_CONTENT = `更新记录
+
+-更新时间：2026.05.18
+
+本次更新内容：
+
+1.修复世界书界面相关 BUG
+"未分类"分类现在和其它分类一样可以删除（删除时其下条目会一并删除）。条目卡片长标题会在卡片内自动换行，不再挤压排序拖拽图标和右侧编辑/删除按钮。
+
+2.角色多选下拉框自动避让底部导航
+管理角色和管理用户人设界面底部的"绑定世界书分类"和"绑定角色"下拉框，到底部展开时会自动向上展开，不再被底部悬浮导航遮挡。
+
+3.修复同名角色绑定时一起被勾选的问题
+角色绑定关系现在按角色 ID 记录而非名字，多个同名但人设不同的角色可以独立绑定。旧数据自动迁移：原本基于名字绑定的角色会按 ID 展开成所有同名角色的绑定，后续可手动取消多余的。
+
+4.角色便签界面优化
+重置按钮从右下角移至左上角，去掉"重置"文字只保留图标；新增相机图标按钮，可下载当前便签截图（透明背景，仅含纸条+胶带+文字，使用 APP 同款字体）；便签显示区域相应放大。
+
+-更新时间：2026.03.19
+
+本次更新内容：
+
+1.新增从本地导入角色卡功能
+在管理角色界面点击"新建角色"按钮，选择"本地导入"，可上传角色卡 JSON 或角色卡 PNG 文件。导入后自动还原角色名、人设描述、头像，并创建同名世界书分类，将所有绑定的世界书条目写入其中（含禁用条目）。如文件中缺少角色名，会弹出对话框补填。
+
+-更新时间：2026.02.28
+
+本次更新内容：
+
+1.新增支持mobi格式书籍导入
+
+2.新增收藏消息功能
+长按消息点击收藏图标后可以收藏该条消息，可在阅读界面右上角的更多设置-会话中查看收藏消息列表。
+
+3.新增会话记录导出为txt
+在更多设置-会话中可以导出当前与char的会话记录为txt。
+
+-更新时间：2026.02.27
+
+本次更新内容：
+
+1.书籍和聊天记录总结卡片新增同时合并精简选项
+选择多个总结卡片后，除了简单拼接合并，还可以让AI帮忙合并压缩这些总结段落。
+
+2.阅读界面顶部目录浮窗新增高亮tab
+可查看本书籍的所有高亮段落，可用颜色章节筛选，点击即可跳转到高亮段落所在处。
+
+3.共读集界面新增摘录tab
+可查看所有书籍的所有高亮段落，点击可显示完整内容，支持复制，删除，跳转。
+
+-更新时间：2026.02.26
+
+本次更新内容：
+
+1.新增书签所在章节显示
+
+2.新增char阅读文字范围开关
+在阅读界面点击更多设置→功能面板中新增了"上文整屏为准"开关。开启后，char读到的原文截至整屏底部而非消息区上方，共读集中的char阅读范围也会同步。
+
+-更新时间：2026.02.25
+
+本次更新内容：
+
+1.新增按字数切分章节功能
+对于epub以外的书籍格式可以人工设定按照字符数切分章节，与正则模式切分二选一，但是注意对于pdf和docx格式，选择人工按照字符数切分则内置的图片会丢失。
+
+-更新时间：2026.02.24
+
+本次更新内容：
+
+1.新增笔记自定义CSS美化功能
+读书笔记选纸张界面支持自定义的CSS美化功能，并且内置了一个预设。
+
+-更新时间：2026.02.23
+
+本次更新内容：
+
+1.新增导出有声书功能
+可以多选章节，导出每一章已经生成过音频的段落拼接为有声书，支持一起导出SRT格式字幕。
+
+2.新增写笔记界面文字编辑样式
+支持编辑文字时改变文字样式为粗体，斜体，有序列表，无序列表，改变文字为标题或正文字号。
+
+3.修正GBK编码格式txt导入乱码问题
+
+4.优化发送给char的书籍上文断句方式
+
+-更新时间：2026.02.23
+
+本次更新内容：
+
+1.TTS 板块功能完善
+阅读页已支持段落级 TTS 生成功能：可从当前位置开始朗读、暂停/继续、停止播放；支持按段落缓存音频并在需要时单段刷新重生成，减少重复请求等待；新增多平台 TTS API 预设，语速/语言切换。
+
+2.修正书籍文本分段渲染
+修复了 txt 文件编辑页预览换行正常，但阅读页被渲染成长空格的问题。
+
+3.优化章节标题渲染
+将章节标题加粗居中。`;
+
+// Derive the reader blocks from CH0_CONTENT so future updates only edit one place
+// (CH0_CONTENT also feeds chapter.content → fullText → RAG / AI context).
+// Section pattern: title, then repeating "-更新时间：YYYY.MM.DD\n\n<body>" groups;
+// each group becomes a date block + a body block, matching the original BLOCKS layout.
+const deriveCh0Blocks = (content: string): ReaderContentBlock[] => {
+  const blocks: ReaderContentBlock[] = [];
+  const sections = content.split(/\n-更新时间：/);
+  const header = sections[0]?.trim();
+  if (header) blocks.push(text(header));
+  for (let i = 1; i < sections.length; i++) {
+    const entry = sections[i];
+    const newlineIdx = entry.indexOf('\n');
+    if (newlineIdx === -1) {
+      const date = entry.trim();
+      if (date) blocks.push(text(`-更新时间：${date}`));
+      continue;
+    }
+    const date = entry.slice(0, newlineIdx).trim();
+    const body = entry.slice(newlineIdx + 1).trim();
+    if (date) blocks.push(text(`-更新时间：${date}`));
+    if (body) blocks.push(text(body));
+  }
+  return blocks;
+};
+
+const CH0_BLOCKS: ReaderContentBlock[] = deriveCh0Blocks(CH0_CONTENT);
+
+/* ------------------------------------------------------------------ */
+/*  第一章 快速开始                                                     */
+/* ------------------------------------------------------------------ */
+const CH1_CONTENT = `第一章 快速开始
+
+这是一个和 char 一起阅读的小工具，本意是出于个人原因想提升阅读量做的，因为是起名废所以暂且叫"读点书"。由于重点是阅读所以把聊天功能做得极简轻量，群聊和表情包功能是不支持的。注意勤备份，所有数据（书籍、聊天记录、笔记、设置等）都存储在浏览器本地。如果清除浏览器数据或更换设备，这些内容会丢失。建议定期在设置的"存储管理"中导出一份存档文件，以防万一。
+
+快速开始步骤如下：
+
+这是常驻底栏，四个图标分别是书架，阅读统计，共读集，设置。
+
+第一步：配置接口
+点击底部导航栏最右侧的"设置"图标，进入设置页面。选择"API 配置"，在里面填入你的接口地址、API 密钥和模型名称。目前支持 OpenAI、DeepSeek、Gemini、Claude，以及任何兼容 OpenAI 格式的自定义接口。
+
+填完之后可以点"拉取模型"，绿灯则拉取成功，在下拉框中选择模型，或是自己手动输入。连接成功后点击应用设置直接使用，或者点"内容生成预设配置"的右侧加号添加预设。
+
+第二步：设置 char 和 user 人设
+头像支持本地或者链接上传。
+
+角色可以多选绑定世界书分类。
+
+条目可以设置放在 char 定义前还是后，也可以按住条目卡片前的排序图标上下拖动给条目排序。
+世界书和人设中的{{char}}和{{user}}字符在发送为 prompt 时都会自动被替换成当前选择的 char 和 user 的真名。
+
+第三步：导入书籍和选择人设
+回到书架页面，右上角可以选择当前 char 和 user。如果 user 有绑定的 char，选定 char 时会自动切换到对应的 user。
+
+点击导入书籍的"+"按钮。可以直接上传文件或粘贴网络链接，或者手动输入文本内容。支持的文件格式包括 TXT、PDF、EPUB 和 DOCX，图片会被阅读器渲染但不会被 char 读到。
+
+第四步：开始阅读
+导入完成后，点击书籍卡片就能进入阅读界面。上方是正文区域，下方是和 char 的对话区域。char 会根据当前阅读的内容进行交流。
+
+点击对话区域顶部横杠处可以收起聊天，上下拖拽横杠处可以控制聊天区域大小。
+
+输入时按回车即发送消息气泡，点击纸飞机图标召唤 char 回复，点击重置图标重新生成 char 回答。`;
+
+const CH1_BLOCKS: ReaderContentBlock[] = [
+  text('第一章 快速开始'),
+  text(`这是一个和 char 一起阅读的小工具，本意是出于个人原因想提升阅读量做的，因为是起名废所以暂且叫"读点书"。由于重点是阅读所以把聊天功能做得极简轻量，群聊和表情包功能是不支持的。注意勤备份，所有数据（书籍、聊天记录、笔记、设置等）都存储在浏览器本地。如果清除浏览器数据或更换设备，这些内容会丢失。建议定期在设置的"存储管理"中导出一份存档文件，以防万一。
+
+快速开始步骤如下：`),
+  img(IMG_P1_0, '常驻底栏', 361, 90),
+  text('这是常驻底栏，四个图标分别是书架，阅读统计，共读集，设置。'),
+  text(`第一步：配置接口`),
+  img(IMG_P1_1, 'API 配置', 385, 690),
+  text(`点击底部导航栏最右侧的"设置"图标，进入设置页面。选择"API 配置"，在里面填入你的接口地址、API 密钥和模型名称。目前支持 OpenAI、DeepSeek、Gemini、Claude，以及任何兼容 OpenAI 格式的自定义接口。
+
+填完之后可以点"拉取模型"，绿灯则拉取成功，在下拉框中选择模型，或是自己手动输入。连接成功后点击应用设置直接使用，或者点"内容生成预设配置"的右侧加号添加预设。`),
+  text('第二步：设置 char 和 user 人设'),
+  img(IMG_P2_0, '管理用户人设', 387, 572),
+  text('头像支持本地或者链接上传。'),
+  img(IMG_P2_1, '管理角色', 386, 613),
+  img(IMG_P2_2, '世界书分类', 385, 363),
+  text('角色可以多选绑定世界书分类。'),
+  img(IMG_P3_0, '世界书条目', 381, 664),
+  text(`条目可以设置放在 char 定义前还是后，也可以按住条目卡片前的排序图标上下拖动给条目排序。
+世界书和人设中的{{char}}和{{user}}字符在发送为 prompt 时都会自动被替换成当前选择的 char 和 user 的真名。`),
+  text('第三步：导入书籍和选择人设'),
+  img(IMG_P3_1, '书架', 387, 812),
+  text(`回到书架页面，右上角可以选择当前 char 和 user。如果 user 有绑定的 char，选定 char 时会自动切换到对应的 user。
+
+点击导入书籍的"+"按钮。可以直接上传文件或粘贴网络链接，或者手动输入文本内容。支持的文件格式包括 TXT、PDF、EPUB 和 DOCX，图片会被阅读器渲染但不会被 char 读到。`),
+  text('第四步：开始阅读'),
+  img(IMG_P4_0, '阅读界面', 386, 800),
+  text(`导入完成后，点击书籍卡片就能进入阅读界面。上方是正文区域，下方是和 char 的对话区域。char 会根据当前阅读的内容进行交流。
+
+点击对话区域顶部横杠处可以收起聊天，上下拖拽横杠处可以控制聊天区域大小。
+
+输入时按回车即发送消息气泡，点击纸飞机图标召唤 char 回复，点击重置图标重新生成 char 回答。`),
+];
+
+/* ------------------------------------------------------------------ */
+/*  第二章 书架                                                         */
+/* ------------------------------------------------------------------ */
+const CH2_CONTENT = `第二章 书架
+
+1.搜索与筛选
+可以按书名或作者搜索。
+筛选按钮可以按标签过滤。
+排序支持按标题、作者、阅读进度、添加时间和书本长度排列，可以点击切换升序或降序。
+
+2.视图切换
+书架支持两种视图，切换按钮在最右边，偏好会被记住。
+网格视图：以封面卡片形式展示。
+列表视图：紧凑的文字列表形式。
+
+3.导入书籍
+导入书籍时可以填写书籍的标题、作者，添加标签，以及设置封面图片。
+如果是 EPUB 格式可以自动解析信息。
+
+4.编辑书籍信息
+每本书的卡片上有一个编辑按钮（铅笔图标），点击后可以修改：
+标题和作者
+封面图片（支持上传图片、粘贴图片链接）
+标签（用于分类和筛选）
+章节正则表达式（用于自动识别章节结构，可以填入章节样式让 AI 帮忙解析成正则）
+
+5.章节解析
+如果书没有被正确分章，可以在编辑界面填写章节正则表达式。比如填入"第.+章"就能匹配"第一章""第二章"这样的标题。系统会实时显示识别到的章节数量，也可以点击旁边的按钮让 AI 自动生成正则表达式。
+
+6.RAG 智能检索
+在编辑界面底部有一个"RAG 索引"开关。开启后，系统会为这本书建立向量索引，让 char 在对话时能检索全书中最相关的段落，而不仅限于当前阅读位置附近的文字和前文总结。
+适合内容量大、需要跨章节关联的书籍。
+点击旁边的问号图标可以查看 RAG 功能说明如下。`;
+
+const CH2_BLOCKS: ReaderContentBlock[] = [
+  text('第二章 书架'),
+  img(IMG_P4_1, '搜索与筛选', 387, 102),
+  text(`1.搜索与筛选
+可以按书名或作者搜索。
+筛选按钮可以按标签过滤。
+排序支持按标题、作者、阅读进度、添加时间和书本长度排列，可以点击切换升序或降序。
+
+2.视图切换
+书架支持两种视图，切换按钮在最右边，偏好会被记住。
+网格视图：以封面卡片形式展示。
+列表视图：紧凑的文字列表形式。
+
+3.导入书籍
+导入书籍时可以填写书籍的标题、作者，添加标签，以及设置封面图片。
+如果是 EPUB 格式可以自动解析信息。
+
+4.编辑书籍信息
+每本书的卡片上有一个编辑按钮（铅笔图标），点击后可以修改：
+标题和作者
+封面图片（支持上传图片、粘贴图片链接）
+标签（用于分类和筛选）
+章节正则表达式（用于自动识别章节结构，可以填入章节样式让 AI 帮忙解析成正则）
+
+5.章节解析
+如果书没有被正确分章，可以在编辑界面填写章节正则表达式。比如填入"第.+章"就能匹配"第一章""第二章"这样的标题。系统会实时显示识别到的章节数量，也可以点击旁边的按钮让 AI 自动生成正则表达式。
+
+6.RAG 智能检索
+在编辑界面底部有一个"RAG 索引"开关。开启后，系统会为这本书建立向量索引，让 char 在对话时能检索全书中最相关的段落，而不仅限于当前阅读位置附近的文字和前文总结。
+适合内容量大、需要跨章节关联的书籍。
+点击旁边的问号图标可以查看 RAG 功能说明如下。`),
+  img(IMG_P5_0, 'RAG 功能说明', 385, 487),
+];
+
+/* ------------------------------------------------------------------ */
+/*  第三章 阅读界面                                                     */
+/* ------------------------------------------------------------------ */
+const CH3_CONTENT = `第三章 阅读界面
+
+顶栏右上角的菜单按钮包含以下功能，从左到右分别是：
+
+1.目录
+列出书中所有章节。当前章节会高亮显示，点击任意章节标题可以直接跳转过去。
+
+2.书签
+可以在当前阅读位置创建书签。之后在书签列表中点击就能跳回那个位置。不需要的书签可以随时删除。
+
+3.高亮标注
+单击荧光笔图标进入高亮标记模式，在正文中选中一段文字后可以高亮或者取消高亮，char 能够知道高亮的内容。
+双击图标会出现颜色选择面板。预设了黄、橙、红、绿、蓝、紫六种颜色，也可以自定义颜色。
+
+4.排版设置
+可以调整以下选项，只影响阅读区域的文字：
+对齐：居左，居中，两端对齐
+字体：预设了宋体、黑体、等宽三种字体，也支持通过 CSS 链接或字体文件导入自定义字体。
+字号：可以调大或调小。
+行距：可以调大或调小。
+文字颜色和背景色：提供预设配色，也可以自定义。
+
+5.更多设置
+
+a.聊天区域外观类：
+气泡字号缩放：单独调整对话区文字大小。
+聊天背景图：为对话区设置自定义背景图片。
+消息时间戳：显示或隐藏每条消息的发送时间。
+CSS 样式自定义：自定义整个消息界面的外观，内置了预设，也可以把内置预设发给 AI 自己肘击 CSS。
+以下是所有支持自定义的类名及其对应的元素：
+.rm-panel —— 消息面板整体容器
+.rm-header —— 顶部区域（头像和角色名所在的栏）
+.rm-avatar —— 角色头像
+.rm-char-name —— 角色名字
+.rm-messages —— 消息列表滚动区域
+.rm-bubble —— 所有消息气泡的通用类
+.rm-bubble-ai —— 角色发送的气泡
+.rm-bubble-user —— 你发送的气泡
+.rm-time-tag —— 消息之间的居中时间分隔标签（间隔较长时显示）
+.rm-msg-time —— 每条消息上方的时间戳（开启"显示消息时间"后可见）
+.rm-input-area —— 底部输入区整体
+.rm-input-wrap —— 输入框外层容器（圆角边框）
+.rm-input —— 文本输入框本身
+.rm-send-btn —— 发送按钮
+.rm-retry-btn —— 重试按钮
+.rm-typing —— 正在输入提示整体
+.rm-typing-name —— 提示中的角色名
+.rm-typing-text —— 提示中的文字部分（如"正在输入中..."），可通过 CSS 隐藏原文并用伪元素替换显示内容
+在深色模式下，可以用 .dark-mode 前缀来编写针对深色主题的样式。
+
+b.功能类：
+阅读原文字数：控制发送给 char 的正文上文范围。默认 800 字符，增大可以让角色看到更多前文，但会消耗更多 Token。
+记忆消息条数：char 能滚动记住的历史消息原文条数。默认 100 条。
+回复条数范围：char 单次回复的气泡数量范围（默认 3-8 条）。
+聊天自动总结：开启后，从开启时的进度开始算，当对话消息达到设定条数时自动生成一段摘要。
+书籍自动总结：开启后，从开启时的进度开始算，当阅读推进到设定字数时自动生成阅读总结。
+总结专用副 API：可以为总结功能配置一个单独的预设节省 TOKEN。
+
+c.会话类：
+当前会话 token 预估（仅供参考）
+会话存档选择：每本书的每个 user X char 组合只有一个存档。涉及到已经删除的角色或用户的存档会用感叹号标出，这种存档可以进入查看历史对话，但是不可继续。
+总结：分别为书籍内容和聊天记录进行手动总结，合并卡片只是单纯拼合文字，不是调用 AI 二次简化。`;
+
+const CH3_BLOCKS: ReaderContentBlock[] = [
+  text('第三章 阅读界面'),
+  text('顶栏右上角的菜单按钮包含以下功能，从左到右分别是：'),
+  img(IMG_P5_1, '顶栏菜单按钮', 275, 62),
+  text(`1.目录
+列出书中所有章节。当前章节会高亮显示，点击任意章节标题可以直接跳转过去。
+
+2.书签
+可以在当前阅读位置创建书签。之后在书签列表中点击就能跳回那个位置。不需要的书签可以随时删除。`),
+  img(IMG_P6_0, '目录与书签', 360, 119),
+  text(`3.高亮标注
+单击荧光笔图标进入高亮标记模式，在正文中选中一段文字后可以高亮或者取消高亮，char 能够知道高亮的内容。
+双击图标会出现颜色选择面板。预设了黄、橙、红、绿、蓝、紫六种颜色，也可以自定义颜色。`),
+  img(IMG_P6_1, '荧光笔颜色', 357, 259),
+  text(`4.排版设置
+可以调整以下选项，只影响阅读区域的文字：
+对齐：居左，居中，两端对齐
+字体：预设了宋体、黑体、等宽三种字体，也支持通过 CSS 链接或字体文件导入自定义字体。
+字号：可以调大或调小。
+行距：可以调大或调小。
+文字颜色和背景色：提供预设配色，也可以自定义。`),
+  img(IMG_P6_2, '文字样式', 354, 281),
+  text('5.更多设置'),
+  img(IMG_P6_3, '更多设置标签页', 376, 58),
+  text(`a.聊天区域外观类：
+气泡字号缩放：单独调整对话区文字大小。
+聊天背景图：为对话区设置自定义背景图片。
+消息时间戳：显示或隐藏每条消息的发送时间。
+CSS 样式自定义：自定义整个消息界面的外观，内置了预设，也可以把内置预设发给 AI 自己肘击 CSS。
+以下是所有支持自定义的类名及其对应的元素：
+.rm-panel —— 消息面板整体容器
+.rm-header —— 顶部区域（头像和角色名所在的栏）
+.rm-avatar —— 角色头像
+.rm-char-name —— 角色名字
+.rm-messages —— 消息列表滚动区域
+.rm-bubble —— 所有消息气泡的通用类
+.rm-bubble-ai —— 角色发送的气泡
+.rm-bubble-user —— 你发送的气泡
+.rm-time-tag —— 消息之间的居中时间分隔标签（间隔较长时显示）
+.rm-msg-time —— 每条消息上方的时间戳（开启"显示消息时间"后可见）
+.rm-input-area —— 底部输入区整体
+.rm-input-wrap —— 输入框外层容器（圆角边框）
+.rm-input —— 文本输入框本身
+.rm-send-btn —— 发送按钮
+.rm-retry-btn —— 重试按钮
+.rm-typing —— 正在输入提示整体
+.rm-typing-name —— 提示中的角色名
+.rm-typing-text —— 提示中的文字部分（如"正在输入中..."），可通过 CSS 隐藏原文并用伪元素替换显示内容
+在深色模式下，可以用 .dark-mode 前缀来编写针对深色主题的样式。
+
+b.功能类：
+阅读原文字数：控制发送给 char 的正文上文范围。默认 800 字符，增大可以让角色看到更多前文，但会消耗更多 Token。
+记忆消息条数：char 能滚动记住的历史消息原文条数。默认 100 条。
+回复条数范围：char 单次回复的气泡数量范围（默认 3-8 条）。
+聊天自动总结：开启后，从开启时的进度开始算，当对话消息达到设定条数时自动生成一段摘要。
+书籍自动总结：开启后，从开启时的进度开始算，当阅读推进到设定字数时自动生成阅读总结。
+总结专用副 API：可以为总结功能配置一个单独的预设节省 TOKEN。
+
+c.会话类：
+当前会话 token 预估（仅供参考）
+会话存档选择：每本书的每个 user X char 组合只有一个存档。涉及到已经删除的角色或用户的存档会用感叹号标出，这种存档可以进入查看历史对话，但是不可继续。
+总结：分别为书籍内容和聊天记录进行手动总结，合并卡片只是单纯拼合文字，不是调用 AI 二次简化。`),
+];
+
+/* ------------------------------------------------------------------ */
+/*  第四章 设置                                                         */
+/* ------------------------------------------------------------------ */
+const CH4_CONTENT = `第四章 设置
+
+1.主动高亮内容：开启后，char 可能会在喜欢的片段添加下划线标记，可以和 user 的手动荧光笔划线重合，重新生成回答时，该次回答中的 char 划线也会被撤回重新生成。
+
+2.主动发送消息：开启后，char 会在你阅读的过程中主动发送消息。
+评论概率（0-100%）：每次触发时角色实际发言的概率。
+评论间隔（10-600 秒）：两次触发之间的最短等待时间。
+比如设置 50%概率、30 秒间隔，意味着每隔 30 秒有一半的机会 char 会主动说一句。
+
+3.API 配置：
+
+主接口配置：
+选择提供商 OpenAI、DeepSeek、Google Gemini、Anthropic Claude，或自定义接口。填入接口地址（Endpoint）、API 密钥（Key）和模型名称（Model）。
+
+接口预设：
+可以保存多套配置作为预设，方便在不同的模型之间切换。
+
+RAG 预设：
+如果在上传书籍时或修改书籍信息时开启了 RAG 智能检索功能，可以在这里为 RAG 配置独立的模型接口，默认使用的模型是 multilingual-e5-small。
+
+4.存储管理：
+展示 APP 所有数据的存储占用，以环形图的形式展示各类数据的比例：文本信息、聊天记录、共读集、世界书、人设角色、美化预设、统计数据等。
+
+5.外观偏好：
+深色模式：切换浅色和深色主题。
+主题色：选择一个颜色作为全局强调色，会影响按钮、进度条、标签等元素的配色。默认是玫瑰色。
+字号缩放：全局调整界面文字大小，范围 0.8 倍到 1.2 倍。不影响阅读正文的字号（正文字号在阅读界面单独设置）。
+安全区域：如果设备有刘海屏或灵动岛，可以设置顶部和底部的安全间距，避免内容被遮挡。
+
+6.导出存档：将所有数据打包导出为一个文件，用于备份或迁移。
+
+7.导入存档：从之前导出的文件恢复数据。`;
+
+const CH4_BLOCKS: ReaderContentBlock[] = [
+  text('第四章 设置'),
+  text(`1.主动高亮内容：开启后，char 可能会在喜欢的片段添加下划线标记，可以和 user 的手动荧光笔划线重合，重新生成回答时，该次回答中的 char 划线也会被撤回重新生成。
+
+2.主动发送消息：开启后，char 会在你阅读的过程中主动发送消息。
+评论概率（0-100%）：每次触发时角色实际发言的概率。
+评论间隔（10-600 秒）：两次触发之间的最短等待时间。
+比如设置 50%概率、30 秒间隔，意味着每隔 30 秒有一半的机会 char 会主动说一句。
+
+3.API 配置：
+
+主接口配置：
+选择提供商 OpenAI、DeepSeek、Google Gemini、Anthropic Claude，或自定义接口。填入接口地址（Endpoint）、API 密钥（Key）和模型名称（Model）。
+
+接口预设：
+可以保存多套配置作为预设，方便在不同的模型之间切换。
+
+RAG 预设：
+如果在上传书籍时或修改书籍信息时开启了 RAG 智能检索功能，可以在这里为 RAG 配置独立的模型接口，默认使用的模型是 multilingual-e5-small。
+
+4.存储管理：
+展示 APP 所有数据的存储占用，以环形图的形式展示各类数据的比例：文本信息、聊天记录、共读集、世界书、人设角色、美化预设、统计数据等。
+
+5.外观偏好：
+深色模式：切换浅色和深色主题。
+主题色：选择一个颜色作为全局强调色，会影响按钮、进度条、标签等元素的配色。默认是玫瑰色。
+字号缩放：全局调整界面文字大小，范围 0.8 倍到 1.2 倍。不影响阅读正文的字号（正文字号在阅读界面单独设置）。
+安全区域：如果设备有刘海屏或灵动岛，可以设置顶部和底部的安全间距，避免内容被遮挡。
+
+6.导出存档：将所有数据打包导出为一个文件，用于备份或迁移。
+
+7.导入存档：从之前导出的文件恢复数据。`),
+];
+
+/* ------------------------------------------------------------------ */
+/*  第五章 阅读统计                                                     */
+/* ------------------------------------------------------------------ */
+const CH5_CONTENT = `第五章 阅读统计
+
+1.页面顶部有四张概览卡片：
+连续阅读：截至目前连续阅读的天数，点击后进入角色便签。
+累计时长：累计阅读的总小时数，点击后查看阅读最多的书目排名。
+累计读完：阅读进度达到 100%的书籍数量，点击后查看最近读完的书目排名。
+阅读目标：显示当前完成的进度，点击后可以设定目标书籍。
+
+2.每周阅读时长：
+柱状图，展示本周每天的阅读时长。横轴是周一到周日，纵轴是小时数。
+
+3.阅读日历：
+展示当月的阅读活跃度。每个小格代表一天，颜色深浅表示当天的阅读时长。`;
+
+const CH5_BLOCKS: ReaderContentBlock[] = [
+  text('第五章 阅读统计'),
+  img(IMG_P8_0, '阅读统计', 379, 643),
+  text(`1.页面顶部有四张概览卡片：
+连续阅读：截至目前连续阅读的天数，点击后进入角色便签。
+累计时长：累计阅读的总小时数，点击后查看阅读最多的书目排名。
+累计读完：阅读进度达到 100%的书籍数量，点击后查看最近读完的书目排名。
+阅读目标：显示当前完成的进度，点击后可以设定目标书籍。
+
+2.每周阅读时长：
+柱状图，展示本周每天的阅读时长。横轴是周一到周日，纵轴是小时数。
+
+3.阅读日历：
+展示当月的阅读活跃度。每个小格代表一天，颜色深浅表示当天的阅读时长。`),
+];
+
+/* ------------------------------------------------------------------ */
+/*  第六章 共读集                                                       */
+/* ------------------------------------------------------------------ */
+const CH6_CONTENT = `第六章 共读集
+
+1.笔记本：
+创建笔记本时需要填写标题，并绑定一本或多本书。
+可以为笔记本设置封面和纸张背景纹理。
+选纸张界面底部支持自定义 CSS 美化，可用的 CSS 类名如下：
+.sh-paper — 纸张外容器（控制纸张整体背景、边框、阴影等）
+.sh-paper-inner — 纸张内层（控制内边距、伪元素装饰等）
+.studyhub-note-editor — 笔记编辑器（控制文字颜色、字体等）
+.studyhub-note-editor h1 — 一级标题
+.studyhub-note-editor h2 — 二级标题
+.studyhub-note-editor h3 — 三级标题
+.studyhub-note-editor p — 正文段落
+.studyhub-note-editor strong — 粗体文字
+.studyhub-note-editor em — 斜体文字
+.studyhub-note-editor ul — 无序列表
+.studyhub-note-editor ol — 有序列表
+.studyhub-note-editor li — 列表项
+.sh-note-placeholder — 编辑器空白时的占位提示文字
+暗色模式下在类名前加 .dark-mode，例如：.dark-mode .sh-paper { }
+如果在 CSS 中定义了纸张背景，需加 !important 以覆盖内置纸张背景。
+每个笔记本可以绑定一个 user 人设（后续不可更改）。
+在笔记本中可以创建多条笔记。
+
+2.角色评论
+笔记写好之后，点击"召唤"按钮可以让 char 对你的笔记进行点评。可以选择最多 3 个 char 来评论同一条笔记。char 会基于笔记内容和绑定书籍的上下文来给出评价。评论以楼层的形式呈现，可以回复角色的评论，形成楼中楼。每条笔记的评论是独立的。
+
+3.内容问答：
+强烈建议开启 RAG 功能后再使用，创建测验时需要配置：
+选择书籍：从你的书架中选择一本或多本书作为出题范围。
+题目数量：想答多少道题。
+题目类型：单选题、多选题或判断题。
+选项数量：每道题有几个选项。
+自定义提示词：指定出题方向。
+配置好之后，系统会根据选定书籍的内容生成测验题。
+答完所有题目后会显示得分和 char 对你表现的总（锐）评。问答记录会保存下来，可以在历史列表中随时回顾。`;
+
+const CH6_BLOCKS: ReaderContentBlock[] = [
+  text('第六章 共读集'),
+  img(IMG_P8_1, '共读集', 380, 108),
+  text(`1.笔记本：
+创建笔记本时需要填写标题，并绑定一本或多本书。
+可以为笔记本设置封面和纸张背景纹理。
+选纸张界面底部支持自定义 CSS 美化，可用的 CSS 类名如下：
+.sh-paper — 纸张外容器（控制纸张整体背景、边框、阴影等）
+.sh-paper-inner — 纸张内层（控制内边距、伪元素装饰等）
+.studyhub-note-editor — 笔记编辑器（控制文字颜色、字体等）
+.studyhub-note-editor h1 — 一级标题
+.studyhub-note-editor h2 — 二级标题
+.studyhub-note-editor h3 — 三级标题
+.studyhub-note-editor p — 正文段落
+.studyhub-note-editor strong — 粗体文字
+.studyhub-note-editor em — 斜体文字
+.studyhub-note-editor ul — 无序列表
+.studyhub-note-editor ol — 有序列表
+.studyhub-note-editor li — 列表项
+.sh-note-placeholder — 编辑器空白时的占位提示文字
+暗色模式下在类名前加 .dark-mode，例如：.dark-mode .sh-paper { }
+如果在 CSS 中定义了纸张背景，需加 !important 以覆盖内置纸张背景。
+每个笔记本可以绑定一个 user 人设（后续不可更改）。
+在笔记本中可以创建多条笔记。
+
+2.角色评论
+笔记写好之后，点击"召唤"按钮可以让 char 对你的笔记进行点评。可以选择最多 3 个 char 来评论同一条笔记。char 会基于笔记内容和绑定书籍的上下文来给出评价。评论以楼层的形式呈现，可以回复角色的评论，形成楼中楼。每条笔记的评论是独立的。
+
+3.内容问答：
+强烈建议开启 RAG 功能后再使用，创建测验时需要配置：
+选择书籍：从你的书架中选择一本或多本书作为出题范围。
+题目数量：想答多少道题。
+题目类型：单选题、多选题或判断题。
+选项数量：每道题有几个选项。
+自定义提示词：指定出题方向。
+配置好之后，系统会根据选定书籍的内容生成测验题。
+答完所有题目后会显示得分和 char 对你表现的总（锐）评。问答记录会保存下来，可以在历史列表中随时回顾。`),
+];
+
+/* ------------------------------------------------------------------ */
+/*  免费TTS部署教程                                                     */
+/* ------------------------------------------------------------------ */
+const CH7_CONTENT = `第七章 免费TTS API 部署指南
+
+部署一个免费的、兼容 OpenAI 格式的文字转语音 API，无需编程知识。
+
+第一部分：部署（约 5 分钟）
+
+第 1 步：注册 Hugging Face 账号
+
+1. 打开 https://huggingface.co/join
+2. 填写用户名、邮箱、密码，完成注册
+3. 去邮箱点击验证链接
+
+第 2 步：一键复制部署
+
+1. 打开这个链接：
+https://huggingface.co/spaces/Amygdala-0/openai-edge-tts?duplicate=true
+2. 页面会弹出「Duplicate this Space」窗口
+3. 按以下方式填写：
+Owner：选你自己的用户名
+Space name：保持默认 openai-edge-tts，或改成你喜欢的名字
+Visibility：选 Public（公开）
+4. 点击 Duplicate Space
+5. 等待 2-5 分钟，页面上方状态变为 Running 就说明部署成功
+
+第 3 步：确认部署成功
+
+部署成功后，打开你的 Space 页面，应该能看到类似这样的内容：
+{
+  "service": "OpenAI Edge TTS",
+  "status": "running",
+  ...
+}
+看到这个就说明一切正常！
+
+第二部分：获取你的 API 地址
+
+你的 API 地址格式为：
+https://你的用户名-openai-edge-tts.hf.space
+
+比如你的 Hugging Face 用户名是 zhangsan，那你的地址就是：
+https://zhangsan-openai-edge-tts.hf.space
+
+注意：如果你在第 2 步改了 Space name，把上面的 openai-edge-tts 替换成你填的名字。
+
+第三部分：在读点书中使用
+
+打开读点书的TTS配置时，服务商选择自定义TTS，按下表填写：
+
+【必填项】
+API 地址：https://你的用户名-openai-edge-tts.hf.space/v1/audio/speech
+API Key：随便填一个或留空（如 sk-1234，填什么都行）
+Model / 模型：tts-1
+Voice / 语音：从下方语音列表中选一个（如 zh-CN-XiaoxiaoNeural）
+
+【Model 可选值】
+tts-1（推荐，最通用）
+tts-1-hd（也可以，效果相同）
+gpt-4o-mini-tts（也可以，效果相同）
+三个 model 效果完全一样，一般填 tts-1 就行。
+
+第四部分：语音列表
+
+中文语音（推荐）
+zh-CN-XiaoxiaoNeural - 女 · 自然温柔（推荐）
+zh-CN-XiaoyiNeural - 女 · 活泼可爱
+zh-CN-YunxiNeural - 男 · 年轻阳光
+zh-CN-YunjianNeural - 男 · 沉稳大气
+zh-CN-YunxiaNeural - 男 · 少年感
+zh-CN-liaoning-XiaobeiNeural - 女 · 东北口音
+zh-TW-HsiaoChenNeural - 女 · 台湾腔
+zh-TW-YunJheNeural - 男 · 台湾腔
+
+英文语音
+en-US-AvaNeural - 女
+en-US-AndrewNeural - 男
+en-US-JennyNeural - 女
+en-US-GuyNeural - 男
+en-US-EmmaNeural - 女
+en-US-BrianNeural - 男
+
+更多语言和语音可以去这里筛选试听：https://tts.travisvn.com/
+
+常见问题
+
+Q：页面显示 "Building" 很久怎么办？
+A：首次构建需要 2-5 分钟，耐心等待。如果超过 10 分钟还没好，刷新页面看看。
+
+Q：页面显示 "Runtime Error" 怎么办？
+A：点击页面上的 Logs 标签查看错误日志。最常见原因是 HF 平台临时故障，等几分钟再点 Restart 按钮重试。
+
+Q：API 地址填了但报错？
+A：不同软件要求的格式不同，试试以下几种：
+https://你的用户名-openai-edge-tts.hf.space/v1/audio/speech
+https://你的用户名-openai-edge-tts.hf.space/v1
+https://你的用户名-openai-edge-tts.hf.space
+
+Q：Space 一段时间不用会休眠吗？
+A：是的，免费 Space 闲置一段时间后会自动休眠。下次请求时会自动唤醒，首次唤醒可能需要等 30 秒左右。
+
+Q：这个服务收费吗？
+A：完全免费。它使用的是微软 Edge 浏览器内置的免费 TTS 服务。
+
+Q：支持哪些音频格式？
+A：默认输出 mp3。也支持 wav、aac、opus、flac（需要软件端指定 response_format）。`;
+
+const CH7_BLOCKS: ReaderContentBlock[] = [
+  text('免费TTS API 部署指南'),
+  text('部署一个免费的、兼容 OpenAI 格式的文字转语音 API，无需编程知识。'),
+  text(`第一部分：部署（约 5 分钟）
+
+第 1 步：注册 Hugging Face 账号
+
+1. 打开 https://huggingface.co/join
+2. 填写用户名、邮箱、密码，完成注册
+3. 去邮箱点击验证链接`),
+  text(`第 2 步：一键复制部署
+
+1. 打开这个链接：
+https://huggingface.co/spaces/Amygdala-0/openai-edge-tts?duplicate=true
+2. 页面会弹出「Duplicate this Space」窗口
+3. 按以下方式填写：
+Owner：选你自己的用户名
+Space name：保持默认 openai-edge-tts，或改成你喜欢的名字
+Visibility：选 Public（公开）
+4. 点击 Duplicate Space
+5. 等待 2-5 分钟，页面上方状态变为 Running 就说明部署成功`),
+  text(`第 3 步：确认部署成功
+
+部署成功后，打开你的 Space 页面，应该能看到类似这样的内容：
+{
+  "service": "OpenAI Edge TTS",
+  "status": "running",
+  ...
+}
+看到这个就说明一切正常！`),
+  text(`第二部分：获取你的 API 地址
+
+你的 API 地址格式为：
+https://你的用户名-openai-edge-tts.hf.space
+
+比如你的 Hugging Face 用户名是 zhangsan，那你的地址就是：
+https://zhangsan-openai-edge-tts.hf.space
+
+注意：如果你在第 2 步改了 Space name，把上面的 openai-edge-tts 替换成你填的名字。`),
+  text(`第三部分：在读点书中使用
+
+打开读点书的TTS配置时，服务商选择自定义TTS，按下表填写：
+
+【必填项】
+API 地址：https://你的用户名-openai-edge-tts.hf.space/v1/audio/speech
+API Key：随便填一个或留空（如 sk-1234，填什么都行）
+Model / 模型：tts-1
+Voice / 语音：从下方语音列表中选一个（如 zh-CN-XiaoxiaoNeural）
+
+【Model 可选值】
+tts-1（推荐，最通用）
+tts-1-hd（也可以，效果相同）
+gpt-4o-mini-tts（也可以，效果相同）
+三个 model 效果完全一样，一般填 tts-1 就行。`),
+  text(`第四部分：语音列表
+
+中文语音（推荐）
+zh-CN-XiaoxiaoNeural - 女 · 自然温柔（推荐）
+zh-CN-XiaoyiNeural - 女 · 活泼可爱
+zh-CN-YunxiNeural - 男 · 年轻阳光
+zh-CN-YunjianNeural - 男 · 沉稳大气
+zh-CN-YunxiaNeural - 男 · 少年感
+zh-CN-liaoning-XiaobeiNeural - 女 · 东北口音
+zh-TW-HsiaoChenNeural - 女 · 台湾腔
+zh-TW-YunJheNeural - 男 · 台湾腔
+
+英文语音
+en-US-AvaNeural - 女
+en-US-AndrewNeural - 男
+en-US-JennyNeural - 女
+en-US-GuyNeural - 男
+en-US-EmmaNeural - 女
+en-US-BrianNeural - 男
+
+更多语言和语音可以去这里筛选试听：https://tts.travisvn.com/`),
+  text(`常见问题
+
+Q：页面显示 "Building" 很久怎么办？
+A：首次构建需要 2-5 分钟，耐心等待。如果超过 10 分钟还没好，刷新页面看看。
+
+Q：页面显示 "Runtime Error" 怎么办？
+A：点击页面上的 Logs 标签查看错误日志。最常见原因是 HF 平台临时故障，等几分钟再点 Restart 按钮重试。
+
+Q：API 地址填了但报错？
+A：不同软件要求的格式不同，试试以下几种：
+https://你的用户名-openai-edge-tts.hf.space/v1/audio/speech
+https://你的用户名-openai-edge-tts.hf.space/v1
+https://你的用户名-openai-edge-tts.hf.space
+
+Q：Space 一段时间不用会休眠吗？
+A：是的，免费 Space 闲置一段时间后会自动休眠。下次请求时会自动唤醒，首次唤醒可能需要等 30 秒左右。
+
+Q：这个服务收费吗？
+A：完全免费。它使用的是微软 Edge 浏览器内置的免费 TTS 服务。
+
+Q：支持哪些音频格式？
+A：默认输出 mp3。也支持 wav、aac、opus、flac（需要软件端指定 response_format）。`),
+];
+
+/* ------------------------------------------------------------------ */
+/*  组装章节                                                            */
+/* ------------------------------------------------------------------ */
+const TUTORIAL_CHAPTERS: Chapter[] = [
+  { title: '更新记录', content: CH0_CONTENT, blocks: CH0_BLOCKS },
+  { title: '第一章 快速开始', content: CH1_CONTENT, blocks: CH1_BLOCKS },
+  { title: '第二章 书架', content: CH2_CONTENT, blocks: CH2_BLOCKS },
+  { title: '第三章 阅读界面', content: CH3_CONTENT, blocks: CH3_BLOCKS },
+  { title: '第四章 设置', content: CH4_CONTENT, blocks: CH4_BLOCKS },
+  { title: '第五章 阅读统计', content: CH5_CONTENT, blocks: CH5_BLOCKS },
+  { title: '第六章 共读集', content: CH6_CONTENT, blocks: CH6_BLOCKS },
+  { title: '第七章 免费TTS部署教程', content: CH7_CONTENT, blocks: CH7_BLOCKS },
+];
+
+/** 将所有章节内容拼接为 fullText（以换行分隔） */
+const computeFullText = (chapters: Chapter[]): string =>
+  chapters.map((ch) => ch.content).join('\n\n');
+
+const dataUrlToBlob = async (dataUrl: string): Promise<Blob> => {
+  const response = await fetch(dataUrl);
+  return response.blob();
+};
+
+/**
+ * 将教程章节中 data-URL 图片迁移为 idb:// Blob 引用，
+ * 与其他书籍的图片存储方式保持一致。
+ * 返回迁移后的新 chapters 数组（不修改原数组）。
+ */
+export const migrateTutorialImages = async (chapters: Chapter[]): Promise<Chapter[]> => {
+  const migrated: Chapter[] = [];
+  for (const chapter of chapters) {
+    if (!chapter.blocks || chapter.blocks.length === 0) {
+      migrated.push(chapter);
+      continue;
+    }
+    const newBlocks: ReaderContentBlock[] = [];
+    for (const block of chapter.blocks) {
+      if (block.type !== 'image') {
+        newBlocks.push(block);
+        continue;
+      }
+      const src = block.imageRef;
+      if (!src || src.startsWith('idb://') || !src.startsWith('data:')) {
+        newBlocks.push(block);
+        continue;
+      }
+      try {
+        const blob = await dataUrlToBlob(src);
+        const ref = await saveImageBlob(blob);
+        newBlocks.push({ ...block, imageRef: ref });
+      } catch {
+        newBlocks.push(block);
+      }
+    }
+    migrated.push({ ...chapter, blocks: newBlocks });
+  }
+  return migrated;
+};
+
+export function createBuiltInTutorialBook(): Book {
+  const fullText = computeFullText(TUTORIAL_CHAPTERS);
+  return {
+    id: BUILT_IN_TUTORIAL_BOOK_ID,
+    title: '教程',
+    author: 'whitedry',
+    coverUrl: '',
+    progress: 0,
+    lastRead: '',
+    tags: ['内置'],
+    fullText,
+    chapters: TUTORIAL_CHAPTERS,
+    fullTextLength: fullText.length,
+    chapterCount: TUTORIAL_CHAPTERS.length,
+  };
+}
