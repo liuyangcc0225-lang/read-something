@@ -1417,16 +1417,16 @@ const Reader: React.FC<ReaderProps> = ({
   };
 
   const runChapterSwitchTransition = (direction: ChapterSwitchDirection, onCommit: () => void) => {
-    const OUT_MS = 120;
-    const IN_MS = 180;
+    const OUT_MS = 160;
+    const IN_MS = 220;
 
     clearChapterTransitionTimers();
     chapterTransitioningRef.current = true;
-    setChapterTransitionClass(direction === 'next' ? 'reader-chapter-out-up' : 'reader-chapter-out-down');
+    setChapterTransitionClass(direction === 'next' ? 'reader-chapter-out-left' : 'reader-chapter-out-right');
 
     const outTimer = window.setTimeout(() => {
       onCommit();
-      setChapterTransitionClass(direction === 'next' ? 'reader-chapter-in-up' : 'reader-chapter-in-down');
+      setChapterTransitionClass(direction === 'next' ? 'reader-chapter-in-right' : 'reader-chapter-in-left');
 
       const inTimer = window.setTimeout(() => {
         setChapterTransitionClass('');

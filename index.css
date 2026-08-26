@@ -159,6 +159,7 @@
 
       /* Reader正文: keep thumb visible but make track invisible */
       .reader-content-scroll {
+        perspective: 1200px;
         scrollbar-width: none;
         scrollbar-color: transparent transparent;
         -webkit-overflow-scrolling: touch;
@@ -188,36 +189,37 @@
         background: transparent;
       }
 
-      @keyframes reader-chapter-out-up {
-        from { transform: translateY(0); opacity: 1; }
-        to { transform: translateY(-20px); opacity: 0; }
+      /* 翻页动效：左滑下一页（向右翻入），右滑上一页（向左翻回） */
+      @keyframes reader-chapter-out-left {
+        from { transform: translateX(0) rotateY(0deg); opacity: 1; }
+        to { transform: translateX(-70px) rotateY(-16deg); opacity: 0; }
       }
-      @keyframes reader-chapter-out-down {
-        from { transform: translateY(0); opacity: 1; }
-        to { transform: translateY(20px); opacity: 0; }
+      @keyframes reader-chapter-in-right {
+        from { transform: translateX(70px) rotateY(16deg); opacity: 0; }
+        to { transform: translateX(0) rotateY(0deg); opacity: 1; }
       }
-      @keyframes reader-chapter-in-up {
-        from { transform: translateY(20px); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
+      @keyframes reader-chapter-out-right {
+        from { transform: translateX(0) rotateY(0deg); opacity: 1; }
+        to { transform: translateX(70px) rotateY(16deg); opacity: 0; }
       }
-      @keyframes reader-chapter-in-down {
-        from { transform: translateY(-20px); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
+      @keyframes reader-chapter-in-left {
+        from { transform: translateX(-70px) rotateY(-16deg); opacity: 0; }
+        to { transform: translateX(0) rotateY(0deg); opacity: 1; }
       }
-      .reader-chapter-out-up {
-        animation: reader-chapter-out-up 120ms ease-out both;
+      .reader-chapter-out-left {
+        animation: reader-chapter-out-left 160ms ease-out both;
         will-change: transform, opacity;
       }
-      .reader-chapter-out-down {
-        animation: reader-chapter-out-down 120ms ease-out both;
+      .reader-chapter-out-right {
+        animation: reader-chapter-out-right 160ms ease-out both;
         will-change: transform, opacity;
       }
-      .reader-chapter-in-up {
-        animation: reader-chapter-in-up 180ms ease-out both;
+      .reader-chapter-in-right {
+        animation: reader-chapter-in-right 220ms ease-out both;
         will-change: transform, opacity;
       }
-      .reader-chapter-in-down {
-        animation: reader-chapter-in-down 180ms ease-out both;
+      .reader-chapter-in-left {
+        animation: reader-chapter-in-left 220ms ease-out both;
         will-change: transform, opacity;
       }
 
