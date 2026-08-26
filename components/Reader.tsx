@@ -827,6 +827,9 @@ const Reader: React.FC<ReaderProps> = ({
   const touchStartYRef = useRef<number | null>(null);
   const touchLastYRef = useRef<number | null>(null);
   const touchSwitchHandledRef = useRef(false);
+  const touchStartXRef = useRef<number | null>(null);
+  const touchLastXRef = useRef<number | null>(null);
+  const touchStartTimeRef = useRef(0);
   const boundaryIntentDownRef = useRef(0);
   const boundaryIntentUpRef = useRef(0);
   const boundaryArmedDirectionRef = useRef<'next' | 'prev' | null>(null);
@@ -2885,6 +2888,10 @@ const Reader: React.FC<ReaderProps> = ({
     touchStartYRef.current = startY;
     touchLastYRef.current = startY;
     touchSwitchHandledRef.current = false;
+    const startX = e.touches[0]?.clientX ?? null;
+    touchStartXRef.current = startX;
+    touchLastXRef.current = startX;
+    touchStartTimeRef.current = Date.now();
   };
 
   const handleReaderTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -2897,6 +2904,26 @@ const Reader: React.FC<ReaderProps> = ({
     const previousY = touchLastYRef.current ?? currentY;
     touchLastYRef.current = currentY;
     const deltaY = previousY - currentY;
+
+    const currentX = e.touches[0]?.clientX ?? touchStartXRef.current;
+    const previousX = touchLastXRef.current ?? currentX;
+    touchLastXRef.current = currentX;
+    const totalDeltaX = currentX - (touchStartXRef.current ?? currentX);
+    const totalDeltaY = currentY - (touchStartYRef.current ?? currentY);
+    const swipeElapsed = Date.now() - touchStartTimeRef.current;
+
+    // 水平滑动切换章节：左滑下一章，右滑上一章
+    if (Math.abs(totalDeltaX) > Math.abs(totalDeltaY)) {
+      resetBoundaryIntent();
+      clearBoundaryArm();
+      if (swipeElapsed < 700 && Math.abs(totalDeltaX) >= 72) {
+        if (tryAutoSwitchChapter(totalDeltaX < 0 ? 'next' : 'prev')) {
+          touchSwitchHandledRef.current = true;
+          return;
+        }
+      }
+      return;
+    }
 
     if (Math.abs(deltaY) < 6) return;
 
@@ -2949,6 +2976,8 @@ const Reader: React.FC<ReaderProps> = ({
     touchStartYRef.current = null;
     touchLastYRef.current = null;
     touchSwitchHandledRef.current = false;
+    touchStartXRef.current = null;
+    touchLastXRef.current = null;
     clearBoundaryArm();
     resetBoundaryIntent();
   };
