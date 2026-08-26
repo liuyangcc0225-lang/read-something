@@ -554,6 +554,7 @@ const App: React.FC = () => {
   const [ragErrorToast, setRagErrorToast] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
   const [isSoftKeyboardVisible, setIsSoftKeyboardVisible] = useState(false);
   const [systemSafeAreaBottom, setSystemSafeAreaBottom] = useState(0);
+  const [systemSafeAreaTop, setSystemSafeAreaTop] = useState(0);
   const [dailyReadingMsByDate, setDailyReadingMsByDate] = useState<Record<string, number>>(() => {
     try {
       const saved = localStorage.getItem(DAILY_READING_MS_STORAGE_KEY);
@@ -1052,6 +1053,42 @@ const App: React.FC = () => {
       probe.remove();
     };
   }, [isSoftKeyboardVisible]);
+  useEffect(() => {
+    if (!document.body) return;
+
+    const probe = document.createElement('div');
+    probe.setAttribute('aria-hidden', 'true');
+    probe.style.position = 'fixed';
+    probe.style.left = '0';
+    probe.style.top = '0';
+    probe.style.width = '0';
+    probe.style.height = '0';
+    probe.style.paddingTop = 'env(safe-area-inset-top)';
+    probe.style.pointerEvents = 'none';
+    probe.style.visibility = 'hidden';
+    probe.style.zIndex = '-1';
+    document.body.appendChild(probe);
+
+    const syncSafeAreaTop = () => {
+      const style = window.getComputedStyle(probe);
+      const rawTop = Math.max(0, Math.round(parseFloat(style.paddingTop || '0') || 0));
+      const cappedTop = Math.min(rawTop, 64);
+      const top = isSoftKeyboardVisible ? 0 : cappedTop;
+      setSystemSafeAreaTop((prev) => (prev === top ? prev : top));
+      document.documentElement.style.setProperty('--app-safe-area-top-px', `${top}px`);
+    };
+
+    syncSafeAreaTop();
+    window.addEventListener('resize', syncSafeAreaTop);
+    window.addEventListener('orientationchange', syncSafeAreaTop);
+
+    return () => {
+      window.removeEventListener('resize', syncSafeAreaTop);
+      window.removeEventListener('orientationchange', syncSafeAreaTop);
+      probe.remove();
+    };
+  }, [isSoftKeyboardVisible]);
+
   useEffect(() => {
     const syncAppScreenHeight = () => {
       const visualHeight = window.visualViewport?.height ?? 0;
@@ -2195,7 +2232,7 @@ const App: React.FC = () => {
 
   const manualSafeAreaTop = Math.max(0, appSettings.safeAreaTop || 0);
   const manualSafeAreaBottom = Math.max(0, appSettings.safeAreaBottom || 0);
-  const resolvedSafeAreaTop = manualSafeAreaTop;
+  const resolvedSafeAreaTop = Math.max(manualSafeAreaTop, systemSafeAreaTop);
   const resolvedSafeAreaBottom = manualSafeAreaBottom;
   const appViewportHeight = 'calc(var(--app-screen-height) + var(--app-safe-area-bottom-px))';
   const appWrapperClass = `relative flex flex-col h-full font-sans overflow-hidden transition-colors duration-300 ${isDarkMode ? 'dark-mode bg-[#2d3748] text-slate-200' : 'bg-[#e0e5ec] text-slate-600'}`;
