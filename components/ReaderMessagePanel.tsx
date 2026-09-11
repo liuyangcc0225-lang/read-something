@@ -656,6 +656,8 @@ const ReaderMessagePanel: React.FC<ReaderMessagePanelProps> = ({
   const isManualLoading = activeGenerationMode === 'manual';
   const isManualBusy = isManualLoading || isManualPreflightLoading;
   const isAiBusy = isAiLoading || isManualPreflightLoading;
+  const hasPendingInput = Boolean(compactText(inputText));
+  const canPressSend = !isManualBusy && !isDeleteMode && (hasPendingInput || canSendToAi);
   const selectedDeleteIdSet = useMemo(() => new Set(selectedDeleteIds), [selectedDeleteIds]);
   const hiddenBubbleIdSet = useMemo(() => new Set(hiddenBubbleIds), [hiddenBubbleIds]);
   const readerMoreAppearance = appSettings.readerMore.appearance;
@@ -2899,15 +2901,7 @@ const ReaderMessagePanel: React.FC<ReaderMessagePanelProps> = ({
     }
   };
 
-  const handleQueueUserBubble = () => {
-    if (isManualBusy || isDeleteMode) return;
-    if (!isConversationProfileValid) {
-      showConversationLockedToast();
-      return;
-    }
-    const text = compactText(inputText);
-    if (!text) return;
-
+  const buildUserBubble = (text: string): ChatBubble => {
     const now = Date.now();
     const quotePayload =
       quotedMessage && quotedMessage.content
@@ -2920,7 +2914,7 @@ const ReaderMessagePanel: React.FC<ReaderMessagePanelProps> = ({
           }
         : undefined;
 
-    const newMessage: ChatBubble = {
+    return {
       id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
       sender: 'user',
       content: text,
@@ -2929,11 +2923,45 @@ const ReaderMessagePanel: React.FC<ReaderMessagePanelProps> = ({
       quote: quotePayload,
       promptRecord: buildUserPromptRecord(userRealName, text, now, quotePayload),
     };
+  };
 
+  const handleQueueUserBubble = () => {
+    if (isManualBusy || isDeleteMode) return;
+    if (!isConversationProfileValid) {
+      showConversationLockedToast();
+      return;
+    }
+    const text = compactText(inputText);
+    if (!text) return;
+
+    const newMessage = buildUserBubble(text);
     setMessages((prev) => [...prev, newMessage]);
     setInputText('');
     setQuotedMessageId(null);
     setContextMenu(null);
+  };
+
+  // 一键发送：把输入框内容作为用户消息发出，并立即请求 AI 回复
+  const handleSendFromInput = () => {
+    if (isManualBusy || isDeleteMode) return;
+    if (!isConversationProfileValid) {
+      showConversationLockedToast();
+      return;
+    }
+    const text = compactText(inputText);
+    if (!text) {
+      // 输入框为空：若最后一条是自己的消息，则继续让 AI 回复
+      if (canSendToAi) void requestAiReply(messages);
+      return;
+    }
+
+    const newMessage = buildUserBubble(text);
+    const nextMessages = [...messages, newMessage];
+    setMessages(nextMessages);
+    setInputText('');
+    setQuotedMessageId(null);
+    setContextMenu(null);
+    void requestAiReply(nextMessages);
   };
 
   const applyEditMessage = () => {
@@ -3406,6 +3434,7 @@ const ReaderMessagePanel: React.FC<ReaderMessagePanelProps> = ({
                 onChange={(event) => setInputText(event.target.value)}
                 onKeyDown={onInputKeyDown}
                 placeholder=""
+                enterKeyHint="send"
                 disabled={isManualBusy || isDeleteMode}
                 className={`rm-input flex-1 bg-transparent outline-none text-sm min-w-0 px-4 ${
                   isDarkMode ? 'text-slate-200 placeholder-slate-600' : 'text-slate-700'
@@ -3441,16 +3470,17 @@ const ReaderMessagePanel: React.FC<ReaderMessagePanelProps> = ({
               ) : (
                 <>
                   <button
-                    onClick={() => void requestAiReply(messages)}
-                    disabled={isManualBusy || !canSendToAi}
+                    onClick={handleSendFromInput}
+                    disabled={!canPressSend}
                     className={`rm-send-btn p-2 rounded-full transition-all ${
-                      !isManualBusy && canSendToAi
+                      canPressSend
                         ? isDarkMode
                           ? 'bg-rose-400 text-white'
                           : 'neu-flat text-rose-400 active:scale-95'
                         : 'text-slate-400 opacity-50'
                     }`}
                     aria-label="send-to-ai"
+                    title="发送"
                   >
                     <Send size={18} />
                   </button>
